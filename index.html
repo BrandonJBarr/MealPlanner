@@ -3,103 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Meal Planner & Smart Grocery List</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <title>The Barr Family Meal Planner 🐲 | Southlake, TX</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,600&display=swap" rel="stylesheet">
     
-    <!-- Firebase JS SDK (Compat mode for standalone browser execution) -->
+    <!-- Firebase JS SDK (Compat mode) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <style>
         :root {
-            --primary: #2d5a27;
-            --primary-light: #eaf2e8;
-            --accent: #d97706;
-            --bg: #f8faf9;
+            /* BARR FAMILY THEME PALETTE */
+            --teal-dark: #0f766e;
+            --teal-main: #0d9488;
+            --teal-light: #ccfbf1;
+            --teal-bg: #f0fdfa;
+            
+            --longhorn-orange: #bf5700; /* Burnt Orange */
+            --crimson-tide: #9e1b32;    /* Alabama Crimson */
+            --dragon-green: #059669;   /* Southlake Dragon Green */
+            
+            --bg-gradient: linear-gradient(135deg, #f0fdfa 0%, #e6f4f1 100%);
             --card-bg: #ffffff;
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
+            --text-dark: #111827;
+            --text-muted: #4b5563;
             --border: #e5e7eb;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            --radius: 12px;
+            --shadow: 0 10px 25px -5px rgba(13, 148, 136, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            --radius: 16px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-dark); line-height: 1.5; padding-bottom: 60px; }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg-gradient); color: var(--text-dark); line-height: 1.5; padding-bottom: 80px; min-height: 100vh; }
 
-        header { background-color: var(--primary); color: white; padding: 24px 20px; text-align: center; border-bottom: 4px solid var(--accent); position: relative; }
-        header h1 { font-family: 'Playfair Display', serif; font-size: 26px; margin-bottom: 6px; }
-        header p { font-size: 14px; opacity: 0.9; }
+        /* HERO HEADER */
+        header { 
+            background: linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #115e59 100%); 
+            color: white; 
+            padding: 28px 20px 24px; 
+            text-align: center; 
+            box-shadow: 0 4px 20px rgba(15, 118, 110, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
 
-        .sync-status { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 10px; }
-        .sync-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #10b981; }
-        .sync-dot.offline { background-color: #ef4444; }
+        header::before {
+            content: "🐲";
+            position: absolute;
+            font-size: 140px;
+            opacity: 0.06;
+            right: -20px;
+            bottom: -30px;
+            transform: rotate(-15deg);
+        }
 
-        .container { max-width: 900px; margin: 0 auto; padding: 20px 16px; }
+        .header-content { position: relative; z-index: 2; max-width: 800px; margin: 0 auto; }
+        header h1 { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.5px; }
+        header p { font-size: 15px; opacity: 0.95; font-weight: 500; }
 
-        /* TAB NAVIGATION */
-        .nav-tabs { display: flex; gap: 8px; background-color: var(--card-bg); padding: 6px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 24px; box-shadow: var(--shadow); }
-        .tab-btn { flex: 1; padding: 12px 10px; font-weight: 600; font-size: 14px; border: none; background: none; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: all 0.2s ease; text-align: center; }
-        .tab-btn.active { background-color: var(--primary); color: white; }
+        .fandom-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .fandom-tag {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+        .tag-dragon { background-color: var(--dragon-green); }
+        .tag-longhorn { background-color: var(--longhorn-orange); }
+        .tag-crimson { background-color: var(--crimson-tide); }
+
+        .sync-status { 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px; 
+            background: rgba(255,255,255,0.2); 
+            backdrop-filter: blur(8px);
+            padding: 4px 14px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            font-weight: 600; 
+            margin-top: 12px; 
+        }
+        .sync-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #34d399; box-shadow: 0 0 8px #34d399; }
+        .sync-dot.offline { background-color: #f87171; box-shadow: 0 0 8px #f87171; }
+
+        .container { max-width: 950px; margin: 0 auto; padding: 24px 16px; }
+
+        /* NAVIGATION TABS */
+        .nav-tabs { 
+            display: flex; 
+            gap: 8px; 
+            background-color: var(--card-bg); 
+            padding: 8px; 
+            border-radius: var(--radius); 
+            border: 1px solid rgba(13, 148, 136, 0.15); 
+            margin-bottom: 24px; 
+            box-shadow: var(--shadow); 
+        }
+        .tab-btn { 
+            flex: 1; 
+            padding: 12px 10px; 
+            font-weight: 700; 
+            font-size: 14px; 
+            border: none; 
+            background: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            color: var(--text-muted); 
+            transition: all 0.2s ease; 
+            text-align: center; 
+        }
+        .tab-btn.active { background-color: var(--teal-main); color: white; box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3); }
 
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
         /* CARDS & GRIDS */
-        .grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-        .card { background: var(--card-bg); border-radius: var(--radius); padding: 18px; border: 1px solid var(--border); box-shadow: var(--shadow); transition: transform 0.15s ease; }
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 18px; }
+        .card { 
+            background: var(--card-bg); 
+            border-radius: var(--radius); 
+            padding: 20px; 
+            border: 1px solid rgba(13, 148, 136, 0.12); 
+            box-shadow: var(--shadow); 
+            transition: all 0.2s ease; 
+        }
+        .card:hover { transform: translateY(-2px); border-color: var(--teal-main); }
         
         .meal-card { cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
-        .meal-card.selected { border: 2px solid var(--primary); background-color: var(--primary-light); }
-        .meal-card h3 { font-size: 17px; color: var(--text-dark); margin-bottom: 6px; }
-        .meal-badge { display: inline-block; background: #e0f2fe; color: #0369a1; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; margin-bottom: 10px; width: fit-content; }
+        .meal-card.selected { border: 2.5px solid var(--teal-main); background-color: var(--teal-bg); }
+        .meal-card h3 { font-size: 18px; color: var(--text-dark); margin-bottom: 6px; font-weight: 700; }
         
-        .select-checkbox { position: absolute; top: 16px; right: 16px; width: 22px; height: 22px; accent-color: var(--primary); }
+        .meal-badge { display: inline-block; background: var(--teal-light); color: var(--teal-dark); font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; margin-bottom: 10px; width: fit-content; }
+        
+        .select-checkbox { position: absolute; top: 18px; right: 18px; width: 24px; height: 24px; accent-color: var(--teal-main); cursor: pointer; }
 
-        /* GROCERY SECTION */
-        .grocery-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
-        .btn { padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease; }
-        .btn-primary { background-color: var(--primary); color: white; }
-        .btn-primary:hover { background-color: #23481e; }
-        .btn-secondary { background-color: white; border: 1px solid var(--border); color: var(--text-dark); }
-        .btn-secondary:hover { background-color: #f3f4f6; }
-        .btn-danger { background-color: #fee2e2; color: #991b1b; }
+        .recipe-view-btn { 
+            margin-top: 12px; 
+            font-size: 13px; 
+            font-weight: 700; 
+            color: var(--teal-main); 
+            background: none; 
+            border: none; 
+            text-align: left; 
+            cursor: pointer; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 4px; 
+        }
+        .recipe-view-btn:hover { text-decoration: underline; }
 
-        .category-group { background: white; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 16px; overflow: hidden; box-shadow: var(--shadow); }
-        .category-title { background-color: #f9fafb; padding: 12px 18px; font-weight: 700; font-size: 15px; border-bottom: 1px solid var(--border); color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        /* BUTTONS */
+        .btn { padding: 11px 20px; border-radius: 10px; font-weight: 700; font-size: 14px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease; }
+        .btn-primary { background-color: var(--teal-main); color: white; box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25); }
+        .btn-primary:hover { background-color: var(--teal-dark); }
+        .btn-secondary { background-color: white; border: 1.5px solid var(--border); color: var(--text-dark); }
+        .btn-secondary:hover { background-color: #f9fafb; border-color: var(--teal-main); }
+        .btn-danger { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .btn-danger:hover { background-color: #fecaca; }
+
+        /* GROCERY LIST */
+        .category-group { background: white; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 18px; overflow: hidden; box-shadow: var(--shadow); }
+        .category-title { background-color: var(--teal-bg); padding: 14px 20px; font-weight: 800; font-size: 16px; border-bottom: 1px solid rgba(13, 148, 136, 0.15); color: var(--teal-dark); display: flex; align-items: center; gap: 10px; }
         .item-list { list-style: none; padding: 0; }
-        .item-row { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .item-row { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
         .item-row:last-child { border-bottom: none; }
-        .item-label { display: flex; align-items: center; gap: 10px; flex: 1; cursor: pointer; font-size: 15px; }
-        .item-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
-        .item-label.checked span { text-decoration: line-through; color: var(--text-muted); }
+        .item-label { display: flex; align-items: center; gap: 12px; flex: 1; cursor: pointer; font-size: 15px; font-weight: 500; }
+        .item-label input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--teal-main); }
+        .item-label.checked span { text-decoration: line-through; color: var(--text-muted); opacity: 0.6; }
 
-        .item-amount { font-weight: 700; color: var(--accent); font-size: 14px; background: #fef3c7; padding: 3px 8px; border-radius: 6px; }
+        .item-amount { font-weight: 800; color: var(--teal-dark); font-size: 14px; background: var(--teal-light); padding: 4px 10px; border-radius: 8px; }
+
+        /* MODAL (FULL RECIPE VIEW) */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(17, 24, 39, 0.6); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; padding: 20px; z-index: 2000; }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: white; border-radius: 20px; width: 100%; max-width: 650px; max-height: 85vh; overflow-y: auto; padding: 28px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); position: relative; }
+        .modal-close { position: absolute; top: 20px; right: 20px; background: #f3f4f6; border: none; font-size: 20px; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        
+        .recipe-meta { display: flex; gap: 12px; margin: 12px 0 20px; flex-wrap: wrap; }
+        .meta-pill { background: #f3f4f6; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; color: var(--text-dark); }
+
+        .instruction-step { margin-bottom: 12px; padding-left: 28px; position: relative; font-size: 15px; color: #374151; }
+        .instruction-step::before { content: "•"; position: absolute; left: 10px; color: var(--teal-main); font-weight: bold; font-size: 20px; top: -2px; }
 
         /* FORM STYLES */
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
-        .form-control { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); font-size: 15px; }
-        .ingredient-input-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+        .form-control { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 15px; font-family: inherit; }
+        .form-control:focus { outline: none; border-color: var(--teal-main); box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15); }
+        .ingredient-input-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
 
         /* TOAST NOTIFICATION */
-        #toast { position: fixed; bottom: 20px; right: 20px; background: #1f2937; color: white; padding: 12px 20px; border-radius: 8px; font-weight: 500; display: none; z-index: 1000; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        #toast { position: fixed; bottom: 24px; right: 24px; background: #111827; color: white; padding: 14px 24px; border-radius: 12px; font-weight: 600; display: none; z-index: 3000; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); }
 
         @media (max-width: 600px) {
+            header h1 { font-size: 26px; }
             .nav-tabs { flex-direction: column; }
-            .grocery-header { flex-direction: column; align-items: stretch; }
-            .btn { width: 100%; justify-content: center; }
+            .btn { width: 100%; }
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>🍳 Family Meal Planner</h1>
-        <p>Real-time synced recipe index & smart grocery generator</p>
-        <div class="sync-status">
-            <span class="sync-dot" id="syncDot"></span>
-            <span id="syncText">Connecting to Firebase...</span>
+        <div class="header-content">
+            <h1>🐲 The Barr Family Meal Planner</h1>
+            <p>Southlake, TX • Smart Grocery List & Recipe Book</p>
+            
+            <div class="fandom-bar">
+                <span class="fandom-tag tag-dragon">🐲 Dragon Power</span>
+                <span class="fandom-tag tag-longhorn">🤘 Hook 'Em</span>
+                <span class="fandom-tag tag-crimson">🐘 Roll Tide</span>
+            </div>
+
+            <div class="sync-status">
+                <span class="sync-dot" id="syncDot"></span>
+                <span id="syncText">Connecting to Firebase...</span>
+            </div>
         </div>
     </header>
 
@@ -108,61 +238,63 @@
         <div class="nav-tabs">
             <button class="tab-btn active" onclick="switchTab('planTab')">🗓️ Weekly Plan (<span id="selectedCount">0</span>)</button>
             <button class="tab-btn" onclick="switchTab('groceryTab')">🛒 Combined Grocery List</button>
-            <button class="tab-btn" onclick="switchTab('recipesTab')">📖 Recipe Catalog</button>
-            <button class="tab-btn" onclick="switchTab('addTab')">➕ Add New Meal</button>
+            <button class="tab-btn" onclick="switchTab('recipesTab')">📖 Recipe Index</button>
+            <button class="tab-btn" onclick="switchTab('addTab')">➕ Add Recipe</button>
         </div>
 
-        <!-- TAB 1: WEEKLY PLAN (MEAL SELECTOR) -->
+        <!-- TAB 1: WEEKLY PLAN -->
         <div id="planTab" class="tab-content active">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
-                <h2>Choose Meals for the Week</h2>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-secondary" onclick="clearSelections()">Clear Selection</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <h2>Select Meals for the Week</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="clearSelections()">Clear Selected</button>
                     <button class="btn btn-primary" onclick="switchTab('groceryTab')">Generate Grocery List ➔</button>
                 </div>
             </div>
-            <div class="grid-2" id="mealGrid">Loading meals...</div>
+            <div class="grid-2" id="mealGrid">Loading Barr family recipes...</div>
         </div>
 
         <!-- TAB 2: COMBINED GROCERY LIST -->
         <div id="groceryTab" class="tab-content">
-            <div class="grocery-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                 <h2>🛒 Combined Grocery List</h2>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button class="btn btn-primary" onclick="copyGroceryListText()">📋 Copy Text List</button>
-                </div>
+                <button class="btn btn-primary" onclick="copyGroceryListText()">📋 Copy List to Clipboard</button>
             </div>
-            <div id="selectedMealsSummary" style="background: white; padding: 12px 16px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 20px;"></div>
+            <div id="selectedMealsSummary" style="background: white; padding: 14px 18px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 20px; box-shadow: var(--shadow);"></div>
             <div id="groceryListContainer"></div>
         </div>
 
         <!-- TAB 3: RECIPE CATALOG -->
         <div id="recipesTab" class="tab-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h2>📖 All Favorite Recipes</h2>
-                <button class="btn btn-primary" onclick="switchTab('addTab')">➕ Add New</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>📖 Family Recipe Book</h2>
+                <button class="btn btn-primary" onclick="switchTab('addTab')">➕ Add New Recipe</button>
             </div>
             <div class="grid-2" id="catalogGrid"></div>
         </div>
 
         <!-- TAB 4: ADD NEW MEAL FORM -->
         <div id="addTab" class="tab-content">
-            <div class="card" style="max-width: 600px; margin: 0 auto;">
-                <h2 style="margin-bottom: 16px;">Add a New Favorite Meal</h2>
+            <div class="card" style="max-width: 650px; margin: 0 auto;">
+                <h2 style="margin-bottom: 18px; color: var(--teal-dark);">Add a Recipe to the Barr Catalog</h2>
                 <form id="addMealForm" onsubmit="saveNewMeal(event)">
                     <div class="form-group">
-                        <label>Meal Title *</label>
-                        <input type="text" id="mealTitle" class="form-control" placeholder="e.g. Chicken Penne a la Vodka" required>
+                        <label>Recipe Title *</label>
+                        <input type="text" id="mealTitle" class="form-control" placeholder="e.g. Southlake Chicken Penne" required>
                     </div>
                     <div class="form-group">
                         <label>Category</label>
                         <select id="mealCategory" class="form-control">
-                            <option value="Quick & Easy">⚡ Quick & Easy</option>
-                            <option value="Kid Approved">👶 Kid Approved</option>
-                            <option value="Freezer Friendly">🧊 Freezer Friendly</option>
-                            <option value="Crockpot / Slow Cooker">🍲 Crockpot / Slow Cooker</option>
-                            <option value="Weekend Special">🍷 Weekend Special</option>
+                            <option value="⚡ Quick & Easy">⚡ Quick & Easy</option>
+                            <option value="👶 Kid Approved">👶 Kid Approved</option>
+                            <option value="🍲 Crockpot / Slow Cooker">🍲 Crockpot / Slow Cooker</option>
+                            <option value="🧊 Freezer Friendly">🧊 Freezer Friendly</option>
+                            <option value="🏈 Game Day Special">🏈 Game Day Special</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Prep / Cook Time</label>
+                        <input type="text" id="mealTime" class="form-control" placeholder="e.g. 15 min prep • 25 min cook">
                     </div>
                     <div class="form-group">
                         <label>Ingredients Required</label>
@@ -171,7 +303,7 @@
                                 <input type="text" placeholder="Item (e.g. Chicken Breast)" class="form-control ing-name" required>
                                 <input type="number" step="any" placeholder="Qty" class="form-control ing-qty" style="width: 80px;" required>
                                 <input type="text" placeholder="Unit (lbs, oz, cups)" class="form-control ing-unit" style="width: 100px;">
-                                <select class="form-control ing-cat" style="width: 130px;">
+                                <select class="form-control ing-cat" style="width: 140px;">
                                     <option value="Meat & Seafood">🥩 Meat</option>
                                     <option value="Produce">🥬 Produce</option>
                                     <option value="Dairy & Refrigerated">🥛 Dairy</option>
@@ -180,20 +312,48 @@
                                 </select>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-secondary" style="margin-top: 8px; width: 100%;" onclick="addIngredientRow()">+ Add Another Ingredient</button>
+                        <button type="button" class="btn btn-secondary" style="margin-top: 8px; width: 100%;" onclick="addIngredientRow()">+ Add Ingredient</button>
                     </div>
-                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Save Meal to Live Database</button>
+                    <div class="form-group">
+                        <label>Cooking Instructions & Directions</label>
+                        <textarea id="mealInstructions" class="form-control" rows="5" placeholder="Step-by-step instructions for preparing and cooking..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Save Recipe to Live Barr Database</button>
                 </form>
             </div>
         </div>
     </div>
 
-    <div id="toast">List copied to clipboard!</div>
+    <!-- FULL RECIPE DETAILS MODAL -->
+    <div class="modal-overlay" id="recipeModal">
+        <div class="modal-card">
+            <button class="modal-close" onclick="closeRecipeModal()">✕</button>
+            <span class="meal-badge" id="modalCategory">Category</span>
+            <h2 id="modalTitle" style="font-size: 26px; color: var(--text-dark); margin-bottom: 6px;">Recipe Title</h2>
+            
+            <div class="recipe-meta">
+                <span class="meta-pill" id="modalTime">⏱️ 30 mins</span>
+                <span class="meta-pill" id="modalIngCount">🥗 6 Ingredients</span>
+            </div>
+
+            <h3 style="margin-bottom: 10px; color: var(--teal-dark);">Ingredients Needed</h3>
+            <ul style="margin-bottom: 20px; padding-left: 20px; font-size: 15px;" id="modalIngredients"></ul>
+
+            <h3 style="margin-bottom: 10px; color: var(--teal-dark);">Cooking Instructions</h3>
+            <div id="modalInstructions" style="margin-bottom: 24px;"></div>
+
+            <div style="border-top: 1px solid var(--border); pt-16px; padding-top: 16px; display: flex; justify-content: flex-end;">
+                <button class="btn btn-danger" id="modalDeleteBtn">🗑️ Delete Recipe from Catalog</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">Copied to clipboard!</div>
 
     <script>
         // FIREBASE CONFIGURATION
         const firebaseConfig = {
-            apiKey: "AIzaSyBh6NteVE7Wvy5NCFEr5ulbjpuWi6miOII",
+            apiKey: "AIzaSy…iOII",
             authDomain: "familymealplanner-fb4d2.firebaseapp.com",
             databaseURL: "https://familymealplanner-fb4d2-default-rtdb.firebaseio.com",
             projectId: "familymealplanner-fb4d2",
@@ -202,17 +362,17 @@
             appId: "1:701487015593:web:9741647f8797cb5cb86bb8"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const recipesRef = db.ref('meals');
 
-        // DEFAULT STARTER RECIPES (Pushed if database is completely empty)
+        // BARR FAMILY STARTER RECIPES WITH INSTRUCTIONS
         const DEFAULT_RECIPES = [
             {
                 id: "1",
                 title: "Chicken Penne a la Vodka",
-                category: "Weekend Special",
+                category: "👶 Kid Approved",
+                time: "15 min prep • 20 min cook",
                 selected: false,
                 ingredients: [
                     { name: "Chicken Breast", qty: 1.5, unit: "lbs", category: "Meat & Seafood" },
@@ -222,12 +382,14 @@
                     { name: "Garlic", qty: 4, unit: "cloves", category: "Produce" },
                     { name: "Parmesan Cheese", qty: 0.5, unit: "cups", category: "Dairy & Refrigerated" },
                     { name: "Olive Oil", qty: 2, unit: "tbsp", category: "Pantry & Bakery" }
-                ]
+                ],
+                instructions: "1. Bring a large pot of salted water to a boil and cook Penne until al dente.\n2. Cut chicken breasts into bite-sized pieces and season with salt, pepper, and garlic powder.\n3. Heat olive oil in a deep skillet over medium-high heat. Add chicken and cook until golden brown (6-8 mins), then remove chicken from pan.\n4. In the same skillet, saute minced garlic for 1 minute, then stir in tomato paste until darkened.\n5. Pour in heavy cream and simmer for 3 minutes until smooth and rich.\n6. Toss in cooked pasta, chicken, and parmesan cheese. Stir until well coated and creamy. Serve warm!"
             },
             {
                 id: "2",
                 title: "Chicken & Steak Fajitas",
-                category: "Quick & Easy",
+                category: "⚡ Quick & Easy",
+                time: "15 min prep • 15 min cook",
                 selected: false,
                 ingredients: [
                     { name: "Chicken Breast", qty: 1.0, unit: "lbs", category: "Meat & Seafood" },
@@ -239,26 +401,30 @@
                     { name: "Sour Cream", qty: 1.0, unit: "cups", category: "Dairy & Refrigerated" },
                     { name: "Shredded Cheese", qty: 2.0, unit: "cups", category: "Dairy & Refrigerated" },
                     { name: "Limes", qty: 2, unit: "count", category: "Produce" }
-                ]
+                ],
+                instructions: "1. Slice chicken, flank steak, bell peppers, and onions into thin strips.\n2. Toss meat in half of the fajita seasoning and a drizzle of olive oil.\n3. Heat a heavy cast-iron skillet over high heat. Sear chicken and steak strips until browned and tender, then set aside.\n4. Add sliced peppers and onions to skillet; cook until slightly charred and tender-crisp.\n5. Combine meat and veggies back in skillet, squeeze fresh lime juice over top.\n6. Serve sizzling hot with warm flour tortillas, sour cream, and shredded cheese!"
             },
             {
                 id: "3",
                 title: "Ground Beef Tacos",
-                category: "Kid Approved",
+                category: "👶 Kid Approved",
+                time: "10 min prep • 15 min cook",
                 selected: false,
                 ingredients: [
                     { name: "Lean Ground Beef", qty: 1.5, unit: "lbs", category: "Meat & Seafood" },
                     { name: "Taco Seasoning", qty: 1, unit: "packet", category: "Spices & Condiments" },
-                    { name: "Taco Shells", qty: 12, unit: "count", category: "Pantry & Bakery" },
+                    { name: "Taco Shells / Tortillas", qty: 12, unit: "count", category: "Pantry & Bakery" },
                     { name: "Shredded Cheese", qty: 1.5, unit: "cups", category: "Dairy & Refrigerated" },
                     { name: "Shredded Lettuce", qty: 1, unit: "head", category: "Produce" },
                     { name: "Sour Cream", qty: 0.5, unit: "cups", category: "Dairy & Refrigerated" }
-                ]
+                ],
+                instructions: "1. Brown ground beef in a skillet over medium heat, draining excess grease.\n2. Stir in taco seasoning packet and 3/4 cup of water.\n3. Simmer for 5 minutes until sauce thickens and coats meat.\n4. Warm taco shells or tortillas in the oven at 350°F for 5 minutes.\n5. Build tacos with seasoned beef, cheese, shredded lettuce, and sour cream!"
             },
             {
                 id: "4",
                 title: "Sheet Pan Sausage, Peppers & Potatoes",
-                category: "Quick & Easy",
+                category: "⚡ Quick & Easy",
+                time: "10 min prep • 30 min cook",
                 selected: false,
                 ingredients: [
                     { name: "Smoked Sausage", qty: 1.0, unit: "lbs", category: "Meat & Seafood" },
@@ -266,32 +432,34 @@
                     { name: "Bell Peppers", qty: 2, unit: "count", category: "Produce" },
                     { name: "Yellow Onion", qty: 1, unit: "count", category: "Produce" },
                     { name: "Olive Oil", qty: 2, unit: "tbsp", category: "Pantry & Bakery" }
-                ]
+                ],
+                instructions: "1. Preheat oven to 400°F and grease a large sheet pan.\n2. Slice smoked sausage into rounds. Dice potatoes, bell peppers, and onion into bite-sized pieces.\n3. Spread everything on the sheet pan, drizzle with olive oil, salt, pepper, and garlic powder.\n4. Roast for 30-35 minutes until potatoes are golden and tender, tossing halfway through!"
             },
             {
                 id: "5",
                 title: "Slow Cooker Pulled Pork",
-                category: "Crockpot / Slow Cooker",
+                category: "🍲 Crockpot / Slow Cooker",
+                time: "10 min prep • 8 hrs cook",
                 selected: false,
                 ingredients: [
                     { name: "Pork Shoulder", qty: 4.0, unit: "lbs", category: "Meat & Seafood" },
                     { name: "BBQ Sauce", qty: 18, unit: "oz", category: "Spices & Condiments" },
                     { name: "Yellow Onion", qty: 1, unit: "count", category: "Produce" },
                     { name: "Hamburger Buns", qty: 8, unit: "count", category: "Pantry & Bakery" }
-                ]
+                ],
+                instructions: "1. Place sliced onion at the bottom of slow cooker.\n2. Rub pork shoulder with salt, pepper, and paprika; place on top of onions.\n3. Pour half of BBQ sauce over pork.\n4. Cover and cook on LOW for 8 hours until fork tender.\n5. Shred pork with two forks, toss with remaining BBQ sauce, and serve piled high on toasted buns!"
             }
         ];
 
         let recipes = [];
 
-        // REAL-TIME FIREBASE SYNC LISTENERS
+        // FIREBASE REAL-TIME SYNC
         recipesRef.on('value', snapshot => {
             const data = snapshot.val();
             document.getElementById('syncDot').className = 'sync-dot';
-            document.getElementById('syncText').innerText = 'Live Synced with Firebase';
+            document.getElementById('syncText').innerText = 'Barr Family Sync Active';
 
             if (!data) {
-                // Initialize default recipes if empty
                 recipesRef.set(DEFAULT_RECIPES);
             } else {
                 recipes = Array.isArray(data) ? data : Object.values(data);
@@ -301,7 +469,7 @@
             }
         }, err => {
             document.getElementById('syncDot').className = 'sync-dot offline';
-            document.getElementById('syncText').innerText = 'Sync Error / Offline';
+            document.getElementById('syncText').innerText = 'Sync Offline';
             console.error(err);
         });
 
@@ -326,9 +494,10 @@
                 <div class="card meal-card ${m.selected ? 'selected' : ''}" onclick="toggleMeal('${m.id}')">
                     <input type="checkbox" class="select-checkbox" ${m.selected ? 'checked' : ''} onclick="event.stopPropagation(); toggleMeal('${m.id}')">
                     <div>
-                        <span class="meal-badge">${m.category}</span>
+                        <span class="meal-badge">${m.category || 'Family Favorite'}</span>
                         <h3>${m.title}</h3>
-                        <p style="font-size: 13px; color: var(--text-muted);">${m.ingredients ? m.ingredients.length : 0} ingredients</p>
+                        <p style="font-size: 13px; color: var(--text-muted);">${m.ingredients ? m.ingredients.length : 0} ingredients ${m.time ? '• ' + m.time : ''}</p>
+                        <button class="recipe-view-btn" onclick="event.stopPropagation(); showRecipeModal('${m.id}')">📖 View Instructions & Steps</button>
                     </div>
                 </div>
             `).join('');
@@ -353,14 +522,55 @@
             document.getElementById('selectedCount').innerText = count;
         }
 
-        // AGGREGATE GROCERY LIST GENERATOR
+        // FULL RECIPE MODAL & DELETE
+        function showRecipeModal(id) {
+            const m = recipes.find(x => x.id === id);
+            if (!m) return;
+
+            document.getElementById('modalTitle').innerText = m.title;
+            document.getElementById('modalCategory').innerText = m.category || 'Recipe';
+            document.getElementById('modalTime').innerText = `⏱️ ${m.time || 'Quick Prep'}`;
+            document.getElementById('modalIngCount').innerText = `🥗 ${m.ingredients ? m.ingredients.length : 0} Ingredients`;
+
+            document.getElementById('modalIngredients').innerHTML = (m.ingredients || []).map(i => `
+                <li><strong>${i.name}</strong> — ${i.qty} ${i.unit}</li>
+            `).join('');
+
+            const instText = m.instructions || "No detailed instructions added yet. Click edit to add preparation steps!";
+            const steps = instText.split('\n').filter(s => s.trim().length > 0);
+
+            document.getElementById('modalInstructions').innerHTML = steps.map(s => `
+                <div class="instruction-step">${s}</div>
+            `).join('');
+
+            document.getElementById('modalDeleteBtn').onclick = function() {
+                deleteRecipe(m.id, m.title);
+            };
+
+            document.getElementById('recipeModal').classList.add('active');
+        }
+
+        function closeRecipeModal() {
+            document.getElementById('recipeModal').classList.remove('active');
+        }
+
+        function deleteRecipe(id, title) {
+            if (confirm(`Are you sure you want to delete "${title}" from the Barr family catalog?`)) {
+                recipes = recipes.filter(r => r.id !== id);
+                saveToFirebase();
+                closeRecipeModal();
+                showToast(`"${title}" deleted`);
+            }
+        }
+
+        // GROCERY AGGREGATION
         function renderGroceryList() {
             const selected = recipes.filter(r => r.selected);
             const summaryDiv = document.getElementById('selectedMealsSummary');
             const listDiv = document.getElementById('groceryListContainer');
 
             if (selected.length === 0) {
-                summaryDiv.innerHTML = `<strong>No meals selected!</strong> Go to the Weekly Plan tab and select meals to generate your shopping list.`;
+                summaryDiv.innerHTML = `<strong>No meals selected!</strong> Select meals on the Weekly Plan tab to generate your combined grocery list.`;
                 listDiv.innerHTML = '';
                 return;
             }
@@ -368,7 +578,6 @@
             summaryDiv.innerHTML = `<strong>Selected Meals (${selected.length}):</strong> ${selected.map(s => s.title).join(', ')}`;
 
             const aggregated = {};
-
             selected.forEach(meal => {
                 if (!meal.ingredients) return;
                 meal.ingredients.forEach(ing => {
@@ -376,12 +585,7 @@
                     const key = `${normName.toLowerCase()}_${(ing.unit || '').toLowerCase()}`;
 
                     if (!aggregated[key]) {
-                        aggregated[key] = {
-                            name: normName,
-                            qty: 0,
-                            unit: ing.unit || 'count',
-                            category: ing.category || "Pantry & Bakery"
-                        };
+                        aggregated[key] = { name: normName, qty: 0, unit: ing.unit || 'count', category: ing.category || "Pantry & Bakery" };
                     }
                     aggregated[key].qty += parseFloat(ing.qty) || 0;
                 });
@@ -421,18 +625,13 @@
             `).join('');
         }
 
-        function roundQty(num) {
-            return Math.round(num * 100) / 100;
-        }
+        function roundQty(num) { return Math.round(num * 100) / 100; }
 
         function copyGroceryListText() {
             const selected = recipes.filter(r => r.selected);
-            if (selected.length === 0) {
-                alert("Please select at least one meal first!");
-                return;
-            }
+            if (selected.length === 0) { alert("Please select at least one meal first!"); return; }
 
-            let text = `🛒 FAMILY GROCERY LIST (${selected.length} Meals)\n`;
+            let text = `🛒 THE BARR FAMILY GROCERY LIST (${selected.length} Meals)\n`;
             text += `Meals: ${selected.map(s => s.title).join(', ')}\n\n`;
 
             const aggregated = {};
@@ -462,9 +661,7 @@
                 text += `\n`;
             });
 
-            navigator.clipboard.writeText(text).then(() => {
-                showToast("Shopping list copied to clipboard!");
-            });
+            navigator.clipboard.writeText(text).then(() => { showToast("Shopping list copied to clipboard!"); });
         }
 
         function showToast(msg) {
@@ -478,11 +675,13 @@
             const grid = document.getElementById('catalogGrid');
             grid.innerHTML = recipes.map(m => `
                 <div class="card">
-                    <span class="meal-badge">${m.category}</span>
+                    <span class="meal-badge">${m.category || 'Family Favorite'}</span>
                     <h3>${m.title}</h3>
-                    <ul style="margin-top: 10px; font-size: 13px; color: var(--text-muted); padding-left: 18px;">
-                        ${(m.ingredients || []).map(i => `<li>${i.name} - ${i.qty} ${i.unit}</li>`).join('')}
-                    </ul>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">${m.time || 'Quick Prep'}</p>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" style="flex: 1;" onclick="showRecipeModal('${m.id}')">📖 Recipe & Steps</button>
+                        <button class="btn btn-danger" onclick="deleteRecipe('${m.id}', '${m.title.replace(/'/g, "\\'")}')">🗑️ Delete</button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -495,7 +694,7 @@
                 <input type="text" placeholder="Item (e.g. Garlic)" class="form-control ing-name" required>
                 <input type="number" step="any" placeholder="Qty" class="form-control ing-qty" style="width: 80px;" required>
                 <input type="text" placeholder="Unit (cloves)" class="form-control ing-unit" style="width: 100px;">
-                <select class="form-control ing-cat" style="width: 130px;">
+                <select class="form-control ing-cat" style="width: 140px;">
                     <option value="Meat & Seafood">🥩 Meat</option>
                     <option value="Produce">🥬 Produce</option>
                     <option value="Dairy & Refrigerated">🥛 Dairy</option>
@@ -510,6 +709,8 @@
             e.preventDefault();
             const title = document.getElementById('mealTitle').value.trim();
             const category = document.getElementById('mealCategory').value;
+            const time = document.getElementById('mealTime').value.trim();
+            const instructions = document.getElementById('mealInstructions').value.trim();
 
             const rows = document.querySelectorAll('#ingredientRows .ingredient-input-row');
             const ingredients = [];
@@ -529,13 +730,15 @@
                 id: Date.now().toString(),
                 title,
                 category,
+                time,
+                instructions,
                 selected: true,
                 ingredients
             };
 
             recipes.push(newMeal);
             saveToFirebase();
-            alert(`"${title}" added to your live Firebase database!`);
+            alert(`"${title}" saved to the Barr Family Catalog!`);
             document.getElementById('addMealForm').reset();
             switchTab('planTab');
         }
