@@ -210,6 +210,7 @@
             header h1 { font-size: 26px; }
             .nav-tabs { flex-direction: column; }
             .btn { width: 100%; }
+            .ingredient-input-row { flex-wrap: wrap; }
         }
     </style>
 </head>
@@ -239,7 +240,7 @@
             <button class="tab-btn active" onclick="switchTab('planTab')">🗓️ Weekly Plan (<span id="selectedCount">0</span>)</button>
             <button class="tab-btn" onclick="switchTab('groceryTab')">🛒 Combined Grocery List</button>
             <button class="tab-btn" onclick="switchTab('recipesTab')">📖 Recipe Index</button>
-            <button class="tab-btn" onclick="switchTab('addTab')">➕ Add Recipe</button>
+            <button class="tab-btn" id="addTabBtn" onclick="resetFormAndSwitchToAdd()">➕ Add Recipe</button>
         </div>
 
         <!-- TAB 1: WEEKLY PLAN -->
@@ -268,16 +269,18 @@
         <div id="recipesTab" class="tab-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2>📖 Family Recipe Book</h2>
-                <button class="btn btn-primary" onclick="switchTab('addTab')">➕ Add New Recipe</button>
+                <button class="btn btn-primary" onclick="resetFormAndSwitchToAdd()">➕ Add New Recipe</button>
             </div>
             <div class="grid-2" id="catalogGrid"></div>
         </div>
 
-        <!-- TAB 4: ADD NEW MEAL FORM -->
+        <!-- TAB 4: ADD / EDIT MEAL FORM -->
         <div id="addTab" class="tab-content">
             <div class="card" style="max-width: 650px; margin: 0 auto;">
-                <h2 style="margin-bottom: 18px; color: var(--teal-dark);">Add a Recipe to the Barr Catalog</h2>
+                <h2 id="formTitle" style="margin-bottom: 18px; color: var(--teal-dark);">Add a Recipe to the Barr Catalog</h2>
                 <form id="addMealForm" onsubmit="saveNewMeal(event)">
+                    <input type="hidden" id="editingMealId" value="">
+
                     <div class="form-group">
                         <label>Recipe Title *</label>
                         <input type="text" id="mealTitle" class="form-control" placeholder="e.g. Southlake Chicken Penne" required>
@@ -310,6 +313,7 @@
                                     <option value="Pantry & Bakery">🥫 Pantry</option>
                                     <option value="Spices & Condiments">🧂 Spices</option>
                                 </select>
+                                <button type="button" class="btn btn-secondary" onclick="removeIngredientRow(this)" style="padding: 8px 12px;">✕</button>
                             </div>
                         </div>
                         <button type="button" class="btn btn-secondary" style="margin-top: 8px; width: 100%;" onclick="addIngredientRow()">+ Add Ingredient</button>
@@ -318,7 +322,10 @@
                         <label>Cooking Instructions & Directions</label>
                         <textarea id="mealInstructions" class="form-control" rows="5" placeholder="Step-by-step instructions for preparing and cooking..."></textarea>
                     </div>
-                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Save Recipe to Live Barr Database</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="button" class="btn btn-secondary" id="cancelEditBtn" onclick="resetFormAndSwitchToAdd()" style="display: none; flex: 1;">Cancel Edit</button>
+                        <button type="submit" class="btn btn-primary" id="formSubmitBtn" style="flex: 2;">Save Recipe to Live Barr Database</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -342,8 +349,9 @@
             <h3 style="margin-bottom: 10px; color: var(--teal-dark);">Cooking Instructions</h3>
             <div id="modalInstructions" style="margin-bottom: 24px;"></div>
 
-            <div style="border-top: 1px solid var(--border); pt-16px; padding-top: 16px; display: flex; justify-content: flex-end;">
-                <button class="btn btn-danger" id="modalDeleteBtn">🗑️ Delete Recipe from Catalog</button>
+            <div style="border-top: 1px solid var(--border); padding-top: 16px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-secondary" id="modalEditBtn">✏️ Edit Recipe & Ingredients</button>
+                <button class="btn btn-danger" id="modalDeleteBtn">🗑️ Delete Recipe</button>
             </div>
         </div>
     </div>
@@ -481,7 +489,9 @@
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
-            event.target.classList.add('active');
+            const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
+            if (activeBtn) activeBtn.classList.add('active');
+
             document.getElementById(tabId).classList.add('active');
 
             if (tabId === 'groceryTab') renderGroceryList();
@@ -522,7 +532,7 @@
             document.getElementById('selectedCount').innerText = count;
         }
 
-        // FULL RECIPE MODAL & DELETE
+        // FULL RECIPE MODAL & EDIT/DELETE
         function showRecipeModal(id) {
             const m = recipes.find(x => x.id === id);
             if (!m) return;
@@ -543,6 +553,11 @@
                 <div class="instruction-step">${s}</div>
             `).join('');
 
+            document.getElementById('modalEditBtn').onclick = function() {
+                closeRecipeModal();
+                populateFormForEdit(m.id);
+            };
+
             document.getElementById('modalDeleteBtn').onclick = function() {
                 deleteRecipe(m.id, m.title);
             };
@@ -561,6 +576,76 @@
                 closeRecipeModal();
                 showToast(`"${title}" deleted`);
             }
+        }
+
+        // EDIT RECIPE FORM POPULATION
+        function populateFormForEdit(id) {
+            const m = recipes.find(x => x.id === id);
+            if (!m) return;
+
+            document.getElementById('editingMealId').value = m.id;
+            document.getElementById('mealTitle').value = m.title;
+            document.getElementById('mealCategory').value = m.category || '⚡ Quick & Easy';
+            document.getElementById('mealTime').value = m.time || '';
+            document.getElementById('mealInstructions').value = m.instructions || '';
+
+            document.getElementById('formTitle').innerText = `Edit "${m.title}"`;
+            document.getElementById('formSubmitBtn').innerText = `💾 Save Changes to ${m.title}`;
+            document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+
+            const container = document.getElementById('ingredientRows');
+            container.innerHTML = '';
+
+            if (m.ingredients && m.ingredients.length > 0) {
+                m.ingredients.forEach(i => {
+                    const div = document.createElement('div');
+                    div.className = 'ingredient-input-row';
+                    div.innerHTML = `
+                        <input type="text" value="${i.name.replace(/"/g, '&quot;')}" placeholder="Item" class="form-control ing-name" required>
+                        <input type="number" step="any" value="${i.qty}" placeholder="Qty" class="form-control ing-qty" style="width: 80px;" required>
+                        <input type="text" value="${i.unit || ''}" placeholder="Unit" class="form-control ing-unit" style="width: 100px;">
+                        <select class="form-control ing-cat" style="width: 140px;">
+                            <option value="Meat & Seafood" ${i.category === 'Meat & Seafood' ? 'selected' : ''}>🥩 Meat</option>
+                            <option value="Produce" ${i.category === 'Produce' ? 'selected' : ''}>🥬 Produce</option>
+                            <option value="Dairy & Refrigerated" ${i.category === 'Dairy & Refrigerated' ? 'selected' : ''}>🥛 Dairy</option>
+                            <option value="Pantry & Bakery" ${i.category === 'Pantry & Bakery' ? 'selected' : ''}>🥫 Pantry</option>
+                            <option value="Spices & Condiments" ${i.category === 'Spices & Condiments' ? 'selected' : ''}>🧂 Spices</option>
+                        </select>
+                        <button type="button" class="btn btn-secondary" onclick="removeIngredientRow(this)" style="padding: 8px 12px;">✕</button>
+                    `;
+                    container.appendChild(div);
+                });
+            } else {
+                addIngredientRow();
+            }
+
+            switchTab('addTab');
+        }
+
+        function resetFormAndSwitchToAdd() {
+            document.getElementById('editingMealId').value = '';
+            document.getElementById('addMealForm').reset();
+            document.getElementById('formTitle').innerText = 'Add a Recipe to the Barr Catalog';
+            document.getElementById('formSubmitBtn').innerText = 'Save Recipe to Live Barr Database';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+
+            const container = document.getElementById('ingredientRows');
+            container.innerHTML = `
+                <div class="ingredient-input-row">
+                    <input type="text" placeholder="Item (e.g. Chicken Breast)" class="form-control ing-name" required>
+                    <input type="number" step="any" placeholder="Qty" class="form-control ing-qty" style="width: 80px;" required>
+                    <input type="text" placeholder="Unit (lbs, oz, cups)" class="form-control ing-unit" style="width: 100px;">
+                    <select class="form-control ing-cat" style="width: 140px;">
+                        <option value="Meat & Seafood">🥩 Meat</option>
+                        <option value="Produce">🥬 Produce</option>
+                        <option value="Dairy & Refrigerated">🥛 Dairy</option>
+                        <option value="Pantry & Bakery">🥫 Pantry</option>
+                        <option value="Spices & Condiments">🧂 Spices</option>
+                    </select>
+                    <button type="button" class="btn btn-secondary" onclick="removeIngredientRow(this)" style="padding: 8px 12px;">✕</button>
+                </div>
+            `;
+            switchTab('addTab');
         }
 
         // GROCERY AGGREGATION
@@ -678,9 +763,10 @@
                     <span class="meal-badge">${m.category || 'Family Favorite'}</span>
                     <h3>${m.title}</h3>
                     <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">${m.time || 'Quick Prep'}</p>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn btn-secondary" style="flex: 1;" onclick="showRecipeModal('${m.id}')">📖 Recipe & Steps</button>
-                        <button class="btn btn-danger" onclick="deleteRecipe('${m.id}', '${m.title.replace(/'/g, "\\'")}')">🗑️ Delete</button>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" style="flex: 1;" onclick="showRecipeModal('${m.id}')">📖 Instructions</button>
+                        <button class="btn btn-secondary" onclick="populateFormForEdit('${m.id}')">✏️ Edit</button>
+                        <button class="btn btn-danger" onclick="deleteRecipe('${m.id}', '${m.title.replace(/'/g, "\\'")}')">🗑️</button>
                     </div>
                 </div>
             `).join('');
@@ -701,12 +787,23 @@
                     <option value="Pantry & Bakery">🥫 Pantry</option>
                     <option value="Spices & Condiments">🧂 Spices</option>
                 </select>
+                <button type="button" class="btn btn-secondary" onclick="removeIngredientRow(this)" style="padding: 8px 12px;">✕</button>
             `;
             container.appendChild(div);
         }
 
+        function removeIngredientRow(btn) {
+            const row = btn.closest('.ingredient-input-row');
+            if (document.querySelectorAll('.ingredient-input-row').length > 1) {
+                row.remove();
+            } else {
+                row.querySelectorAll('input').forEach(i => i.value = '');
+            }
+        }
+
         function saveNewMeal(e) {
             e.preventDefault();
+            const editingId = document.getElementById('editingMealId').value;
             const title = document.getElementById('mealTitle').value.trim();
             const category = document.getElementById('mealCategory').value;
             const time = document.getElementById('mealTime').value.trim();
@@ -726,20 +823,37 @@
                 }
             });
 
-            const newMeal = {
-                id: Date.now().toString(),
-                title,
-                category,
-                time,
-                instructions,
-                selected: true,
-                ingredients
-            };
+            if (editingId) {
+                // EDIT EXISTING RECIPE
+                const idx = recipes.findIndex(r => r.id === editingId);
+                if (idx !== -1) {
+                    recipes[idx] = {
+                        ...recipes[idx],
+                        title,
+                        category,
+                        time,
+                        instructions,
+                        ingredients
+                    };
+                }
+                showToast(`"${title}" updated!`);
+            } else {
+                // ADD NEW RECIPE
+                const newMeal = {
+                    id: Date.now().toString(),
+                    title,
+                    category,
+                    time,
+                    instructions,
+                    selected: true,
+                    ingredients
+                };
+                recipes.push(newMeal);
+                showToast(`"${title}" added to catalog!`);
+            }
 
-            recipes.push(newMeal);
             saveToFirebase();
-            alert(`"${title}" saved to the Barr Family Catalog!`);
-            document.getElementById('addMealForm').reset();
+            resetFormAndSwitchToAdd();
             switchTab('planTab');
         }
     </script>
