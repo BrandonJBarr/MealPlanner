@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Meal Planner & Smart Grocery List</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase JS SDK (Compat mode for standalone browser execution) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #eaf2e8;
+            --accent: #d97706;
+            --bg: #f8faf9;
+            --card-bg: #ffffff;
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-dark); line-height: 1.5; padding-bottom: 60px; }
+
+        header { background-color: var(--primary); color: white; padding: 24px 20px; text-align: center; border-bottom: 4px solid var(--accent); position: relative; }
+        header h1 { font-family: 'Playfair Display', serif; font-size: 26px; margin-bottom: 6px; }
+        header p { font-size: 14px; opacity: 0.9; }
+
+        .sync-status { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 10px; }
+        .sync-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #10b981; }
+        .sync-dot.offline { background-color: #ef4444; }
+
+        .container { max-width: 900px; margin: 0 auto; padding: 20px 16px; }
+
+        /* TAB NAVIGATION */
+        .nav-tabs { display: flex; gap: 8px; background-color: var(--card-bg); padding: 6px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 24px; box-shadow: var(--shadow); }
+        .tab-btn { flex: 1; padding: 12px 10px; font-weight: 600; font-size: 14px; border: none; background: none; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: all 0.2s ease; text-align: center; }
+        .tab-btn.active { background-color: var(--primary); color: white; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* CARDS & GRIDS */
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 18px; border: 1px solid var(--border); box-shadow: var(--shadow); transition: transform 0.15s ease; }
+        
+        .meal-card { cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
+        .meal-card.selected { border: 2px solid var(--primary); background-color: var(--primary-light); }
+        .meal-card h3 { font-size: 17px; color: var(--text-dark); margin-bottom: 6px; }
+        .meal-badge { display: inline-block; background: #e0f2fe; color: #0369a1; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; margin-bottom: 10px; width: fit-content; }
+        
+        .select-checkbox { position: absolute; top: 16px; right: 16px; width: 22px; height: 22px; accent-color: var(--primary); }
+
+        /* GROCERY SECTION */
+        .grocery-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+        .btn { padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { background-color: #23481e; }
+        .btn-secondary { background-color: white; border: 1px solid var(--border); color: var(--text-dark); }
+        .btn-secondary:hover { background-color: #f3f4f6; }
+        .btn-danger { background-color: #fee2e2; color: #991b1b; }
+
+        .category-group { background: white; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 16px; overflow: hidden; box-shadow: var(--shadow); }
+        .category-title { background-color: #f9fafb; padding: 12px 18px; font-weight: 700; font-size: 15px; border-bottom: 1px solid var(--border); color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .item-list { list-style: none; padding: 0; }
+        .item-row { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .item-row:last-child { border-bottom: none; }
+        .item-label { display: flex; align-items: center; gap: 10px; flex: 1; cursor: pointer; font-size: 15px; }
+        .item-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
+        .item-label.checked span { text-decoration: line-through; color: var(--text-muted); }
+
+        .item-amount { font-weight: 700; color: var(--accent); font-size: 14px; background: #fef3c7; padding: 3px 8px; border-radius: 6px; }
+
+        /* FORM STYLES */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+        .form-control { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); font-size: 15px; }
+        .ingredient-input-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+
+        /* TOAST NOTIFICATION */
+        #toast { position: fixed; bottom: 20px; right: 20px; background: #1f2937; color: white; padding: 12px 20px; border-radius: 8px; font-weight: 500; display: none; z-index: 1000; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+
+        @media (max-width: 600px) {
+            .nav-tabs { flex-direction: column; }
+            .grocery-header { flex-direction: column; align-items: stretch; }
+            .btn { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🍳 Family Meal Planner</h1>
+        <p>Real-time synced recipe index & smart grocery generator</p>
+        <div class="sync-status">
+            <span class="sync-dot" id="syncDot"></span>
+            <span id="syncText">Connecting to Firebase...</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- TABS -->
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('planTab')">🗓️ Weekly Plan (<span id="selectedCount">0</span>)</button>
+            <button class="tab-btn" onclick="switchTab('groceryTab')">🛒 Combined Grocery List</button>
+            <button class="tab-btn" onclick="switchTab('recipesTab')">📖 Recipe Catalog</button>
+            <button class="tab-btn" onclick="switchTab('addTab')">➕ Add New Meal</button>
+        </div>
+
+        <!-- TAB 1: WEEKLY PLAN (MEAL SELECTOR) -->
+        <div id="planTab" class="tab-content active">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                <h2>Choose Meals for the Week</h2>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary" onclick="clearSelections()">Clear Selection</button>
+                    <button class="btn btn-primary" onclick="switchTab('groceryTab')">Generate Grocery List ➔</button>
+                </div>
+            </div>
+            <div class="grid-2" id="mealGrid">Loading meals...</div>
+        </div>
+
+        <!-- TAB 2: COMBINED GROCERY LIST -->
+        <div id="groceryTab" class="tab-content">
+            <div class="grocery-header">
+                <h2>🛒 Combined Grocery List</h2>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="copyGroceryListText()">📋 Copy Text List</button>
+                </div>
+            </div>
+            <div id="selectedMealsSummary" style="background: white; padding: 12px 16px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 20px;"></div>
+            <div id="groceryListContainer"></div>
+        </div>
+
+        <!-- TAB 3: RECIPE CATALOG -->
+        <div id="recipesTab" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2>📖 All Favorite Recipes</h2>
+                <button class="btn btn-primary" onclick="switchTab('addTab')">➕ Add New</button>
+            </div>
+            <div class="grid-2" id="catalogGrid"></div>
+        </div>
+
+        <!-- TAB 4: ADD NEW MEAL FORM -->
+        <div id="addTab" class="tab-content">
+            <div class="card" style="max-width: 600px; margin: 0 auto;">
+                <h2 style="margin-bottom: 16px;">Add a New Favorite Meal</h2>
+                <form id="addMealForm" onsubmit="saveNewMeal(event)">
+                    <div class="form-group">
+                        <label>Meal Title *</label>
+                        <input type="text" id="mealTitle" class="form-control" placeholder="e.g. Chicken Penne a la Vodka" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="mealCategory" class="form-control">
+                            <option value="Quick & Easy">⚡ Quick & Easy</option>
+                            <option value="Kid Approved">👶 Kid Approved</option>
+                            <option value="Freezer Friendly">🧊 Freezer Friendly</option>
+                            <option value="Crockpot / Slow Cooker">🍲 Crockpot / Slow Cooker</option>
+                            <option value="Weekend Special">🍷 Weekend Special</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ingredients Required</label>
+                        <div id="ingredientRows">
+                            <div class="ingredient-input-row">
+                                <input type="text" placeholder="Item (e.g. Chicken Breast)" class="form-control ing-name" required>
+                                <input type="number" step="any" placeholder="Qty" class="form-control ing-qty" style="width: 80px;" required>
+                                <input type="text" placeholder="Unit (lbs, oz, cups)" class="form-control ing-unit" style="width: 100px;">
+                                <select class="form-control ing-cat" style="width: 130px;">
+                                    <option value="Meat & Seafood">🥩 Meat</option>
+                                    <option value="Produce">🥬 Produce</option>
+                                    <option value="Dairy & Refrigerated">🥛 Dairy</option>
+                                    <option value="Pantry & Bakery">🥫 Pantry</option>
+                                    <option value="Spices & Condiments">🧂 Spices</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" style="margin-top: 8px; width: 100%;" onclick="addIngredientRow()">+ Add Another Ingredient</button>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Save Meal to Live Database</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">List copied to clipboard!</div>
+
+    <script>
+        // FIREBASE CONFIGURATION
+        const firebaseConfig = {
+            apiKey: "AIzaSyBh6NteVE7Wvy5NCFEr5ulbjpuWi6miOII",
+            authDomain: "familymealplanner-fb4d2.firebaseapp.com",
+            databaseURL: "https://familymealplanner-fb4d2-default-rtdb.firebaseio.com",
+            projectId: "familymealplanner-fb4d2",
+            storageBucket: "familymealplanner-fb4d2.firebasestorage.app",
+            messagingSenderId: "701487015593",
+            appId: "1:701487015593:web:9741647f8797cb5cb86bb8"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const recipesRef = db.ref('meals');
+
+        // DEFAULT STARTER RECIPES (Pushed if database is completely empty)
+        const DEFAULT_RECIPES = [
+            {
+                id: "1",
+                title: "Chicken Penne a la Vodka",
+                category: "Weekend Special",
+                selected: false,
+                ingredients: [
+                    { name: "Chicken Breast", qty: 1.5, unit: "lbs", category: "Meat & Seafood" },
+                    { name: "Penne Pasta", qty: 16, unit: "oz", category: "Pantry & Bakery" },
+                    { name: "Heavy Cream", qty: 1.0, unit: "cups", category: "Dairy & Refrigerated" },
+                    { name: "Tomato Paste", qty: 6, unit: "oz", category: "Pantry & Bakery" },
+                    { name: "Garlic", qty: 4, unit: "cloves", category: "Produce" },
+                    { name: "Parmesan Cheese", qty: 0.5, unit: "cups", category: "Dairy & Refrigerated" },
+                    { name: "Olive Oil", qty: 2, unit: "tbsp", category: "Pantry & Bakery" }
+                ]
+            },
+            {
+                id: "2",
+                title: "Chicken & Steak Fajitas",
+                category: "Quick & Easy",
+                selected: false,
+                ingredients: [
+                    { name: "Chicken Breast", qty: 1.0, unit: "lbs", category: "Meat & Seafood" },
+                    { name: "Flank Steak", qty: 1.0, unit: "lbs", category: "Meat & Seafood" },
+                    { name: "Bell Peppers", qty: 3, unit: "count", category: "Produce" },
+                    { name: "Yellow Onion", qty: 1, unit: "count", category: "Produce" },
+                    { name: "Fajita Seasoning", qty: 1, unit: "packet", category: "Spices & Condiments" },
+                    { name: "Flour Tortillas", qty: 12, unit: "count", category: "Pantry & Bakery" },
+                    { name: "Sour Cream", qty: 1.0, unit: "cups", category: "Dairy & Refrigerated" },
+                    { name: "Shredded Cheese", qty: 2.0, unit: "cups", category: "Dairy & Refrigerated" },
+                    { name: "Limes", qty: 2, unit: "count", category: "Produce" }
+                ]
+            },
+            {
+                id: "3",
+                title: "Ground Beef Tacos",
+                category: "Kid Approved",
+                selected: false,
+                ingredients: [
+                    { name: "Lean Ground Beef", qty: 1.5, unit: "lbs", category: "Meat & Seafood" },
+                    { name: "Taco Seasoning", qty: 1, unit: "packet", category: "Spices & Condiments" },
+                    { name: "Taco Shells", qty: 12, unit: "count", category: "Pantry & Bakery" },
+                    { name: "Shredded Cheese", qty: 1.5, unit: "cups", category: "Dairy & Refrigerated" },
+                    { name: "Shredded Lettuce", qty: 1, unit: "head", category: "Produce" },
+                    { name: "Sour Cream", qty: 0.5, unit: "cups", category: "Dairy & Refrigerated" }
+                ]
+            },
+            {
+                id: "4",
+                title: "Sheet Pan Sausage, Peppers & Potatoes",
+                category: "Quick & Easy",
+                selected: false,
+                ingredients: [
+                    { name: "Smoked Sausage", qty: 1.0, unit: "lbs", category: "Meat & Seafood" },
+                    { name: "Yukon Gold Potatoes", qty: 1.5, unit: "lbs", category: "Produce" },
+                    { name: "Bell Peppers", qty: 2, unit: "count", category: "Produce" },
+                    { name: "Yellow Onion", qty: 1, unit: "count", category: "Produce" },
+                    { name: "Olive Oil", qty: 2, unit: "tbsp", category: "Pantry & Bakery" }
+                ]
+            },
+            {
+                id: "5",
+                title: "Slow Cooker Pulled Pork",
+                category: "Crockpot / Slow Cooker",
+                selected: false,
+                ingredients: [
+                    { name: "Pork Shoulder", qty: 4.0, unit: "lbs", category: "Meat & Seafood" },
+                    { name: "BBQ Sauce", qty: 18, unit: "oz", category: "Spices & Condiments" },
+                    { name: "Yellow Onion", qty: 1, unit: "count", category: "Produce" },
+                    { name: "Hamburger Buns", qty: 8, unit: "count", category: "Pantry & Bakery" }
+                ]
+            }
+        ];
+
+        let recipes = [];
+
+        // REAL-TIME FIREBASE SYNC LISTENERS
+        recipesRef.on('value', snapshot => {
+            const data = snapshot.val();
+            document.getElementById('syncDot').className = 'sync-dot';
+            document.getElementById('syncText').innerText = 'Live Synced with Firebase';
+
+            if (!data) {
+                // Initialize default recipes if empty
+                recipesRef.set(DEFAULT_RECIPES);
+            } else {
+                recipes = Array.isArray(data) ? data : Object.values(data);
+                renderMealGrid();
+                if (document.getElementById('groceryTab').classList.contains('active')) renderGroceryList();
+                if (document.getElementById('recipesTab').classList.contains('active')) renderCatalog();
+            }
+        }, err => {
+            document.getElementById('syncDot').className = 'sync-dot offline';
+            document.getElementById('syncText').innerText = 'Sync Error / Offline';
+            console.error(err);
+        });
+
+        function saveToFirebase() {
+            recipesRef.set(recipes);
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+
+            if (tabId === 'groceryTab') renderGroceryList();
+            if (tabId === 'recipesTab') renderCatalog();
+        }
+
+        function renderMealGrid() {
+            const grid = document.getElementById('mealGrid');
+            grid.innerHTML = recipes.map(m => `
+                <div class="card meal-card ${m.selected ? 'selected' : ''}" onclick="toggleMeal('${m.id}')">
+                    <input type="checkbox" class="select-checkbox" ${m.selected ? 'checked' : ''} onclick="event.stopPropagation(); toggleMeal('${m.id}')">
+                    <div>
+                        <span class="meal-badge">${m.category}</span>
+                        <h3>${m.title}</h3>
+                        <p style="font-size: 13px; color: var(--text-muted);">${m.ingredients ? m.ingredients.length : 0} ingredients</p>
+                    </div>
+                </div>
+            `).join('');
+            updateSelectedCount();
+        }
+
+        function toggleMeal(id) {
+            const m = recipes.find(x => x.id === id);
+            if (m) {
+                m.selected = !m.selected;
+                saveToFirebase();
+            }
+        }
+
+        function clearSelections() {
+            recipes.forEach(r => r.selected = false);
+            saveToFirebase();
+        }
+
+        function updateSelectedCount() {
+            const count = recipes.filter(r => r.selected).length;
+            document.getElementById('selectedCount').innerText = count;
+        }
+
+        // AGGREGATE GROCERY LIST GENERATOR
+        function renderGroceryList() {
+            const selected = recipes.filter(r => r.selected);
+            const summaryDiv = document.getElementById('selectedMealsSummary');
+            const listDiv = document.getElementById('groceryListContainer');
+
+            if (selected.length === 0) {
+                summaryDiv.innerHTML = `<strong>No meals selected!</strong> Go to the Weekly Plan tab and select meals to generate your shopping list.`;
+                listDiv.innerHTML = '';
+                return;
+            }
+
+            summaryDiv.innerHTML = `<strong>Selected Meals (${selected.length}):</strong> ${selected.map(s => s.title).join(', ')}`;
+
+            const aggregated = {};
+
+            selected.forEach(meal => {
+                if (!meal.ingredients) return;
+                meal.ingredients.forEach(ing => {
+                    const normName = ing.name.trim();
+                    const key = `${normName.toLowerCase()}_${(ing.unit || '').toLowerCase()}`;
+
+                    if (!aggregated[key]) {
+                        aggregated[key] = {
+                            name: normName,
+                            qty: 0,
+                            unit: ing.unit || 'count',
+                            category: ing.category || "Pantry & Bakery"
+                        };
+                    }
+                    aggregated[key].qty += parseFloat(ing.qty) || 0;
+                });
+            });
+
+            const categories = {};
+            Object.values(aggregated).forEach(item => {
+                if (!categories[item.category]) categories[item.category] = [];
+                categories[item.category].push(item);
+            });
+
+            const categoryIcons = {
+                "Meat & Seafood": "🥩",
+                "Produce": "🥬",
+                "Dairy & Refrigerated": "🥛",
+                "Pantry & Bakery": "🥫",
+                "Spices & Condiments": "🧂"
+            };
+
+            listDiv.innerHTML = Object.keys(categories).map(cat => `
+                <div class="category-group">
+                    <div class="category-title">
+                        <span>${categoryIcons[cat] || "🛒"}</span> ${cat}
+                    </div>
+                    <ul class="item-list">
+                        ${categories[cat].map(item => `
+                            <li class="item-row">
+                                <label class="item-label" onclick="this.classList.toggle('checked')">
+                                    <input type="checkbox">
+                                    <span>${item.name}</span>
+                                </label>
+                                <span class="item-amount">${roundQty(item.qty)} ${item.unit}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `).join('');
+        }
+
+        function roundQty(num) {
+            return Math.round(num * 100) / 100;
+        }
+
+        function copyGroceryListText() {
+            const selected = recipes.filter(r => r.selected);
+            if (selected.length === 0) {
+                alert("Please select at least one meal first!");
+                return;
+            }
+
+            let text = `🛒 FAMILY GROCERY LIST (${selected.length} Meals)\n`;
+            text += `Meals: ${selected.map(s => s.title).join(', ')}\n\n`;
+
+            const aggregated = {};
+            selected.forEach(meal => {
+                if (!meal.ingredients) return;
+                meal.ingredients.forEach(ing => {
+                    const normName = ing.name.trim();
+                    const key = `${normName.toLowerCase()}_${(ing.unit || '').toLowerCase()}`;
+                    if (!aggregated[key]) {
+                        aggregated[key] = { name: normName, qty: 0, unit: ing.unit || 'count', category: ing.category || "Pantry & Bakery" };
+                    }
+                    aggregated[key].qty += parseFloat(ing.qty) || 0;
+                });
+            });
+
+            const categories = {};
+            Object.values(aggregated).forEach(item => {
+                if (!categories[item.category]) categories[item.category] = [];
+                categories[item.category].push(item);
+            });
+
+            Object.keys(categories).forEach(cat => {
+                text += `--- ${cat.toUpperCase()} ---\n`;
+                categories[cat].forEach(i => {
+                    text += `• ${i.name}: ${roundQty(i.qty)} ${i.unit}\n`;
+                });
+                text += `\n`;
+            });
+
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Shopping list copied to clipboard!");
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 2500);
+        }
+
+        function renderCatalog() {
+            const grid = document.getElementById('catalogGrid');
+            grid.innerHTML = recipes.map(m => `
+                <div class="card">
+                    <span class="meal-badge">${m.category}</span>
+                    <h3>${m.title}</h3>
+                    <ul style="margin-top: 10px; font-size: 13px; color: var(--text-muted); padding-left: 18px;">
+                        ${(m.ingredients || []).map(i => `<li>${i.name} - ${i.qty} ${i.unit}</li>`).join('')}
+                    </ul>
+                </div>
+            `).join('');
+        }
+
+        function addIngredientRow() {
+            const container = document.getElementById('ingredientRows');
+            const div = document.createElement('div');
+            div.className = 'ingredient-input-row';
+            div.innerHTML = `
+                <input type="text" placeholder="Item (e.g. Garlic)" class="form-control ing-name" required>
+                <input type="number" step="any" placeholder="Qty" class="form-control ing-qty" style="width: 80px;" required>
+                <input type="text" placeholder="Unit (cloves)" class="form-control ing-unit" style="width: 100px;">
+                <select class="form-control ing-cat" style="width: 130px;">
+                    <option value="Meat & Seafood">🥩 Meat</option>
+                    <option value="Produce">🥬 Produce</option>
+                    <option value="Dairy & Refrigerated">🥛 Dairy</option>
+                    <option value="Pantry & Bakery">🥫 Pantry</option>
+                    <option value="Spices & Condiments">🧂 Spices</option>
+                </select>
+            `;
+            container.appendChild(div);
+        }
+
+        function saveNewMeal(e) {
+            e.preventDefault();
+            const title = document.getElementById('mealTitle').value.trim();
+            const category = document.getElementById('mealCategory').value;
+
+            const rows = document.querySelectorAll('#ingredientRows .ingredient-input-row');
+            const ingredients = [];
+
+            rows.forEach(r => {
+                const name = r.querySelector('.ing-name').value.trim();
+                const qty = parseFloat(r.querySelector('.ing-qty').value) || 1;
+                const unit = r.querySelector('.ing-unit').value.trim() || 'count';
+                const cat = r.querySelector('.ing-cat').value;
+
+                if (name) {
+                    ingredients.push({ name, qty, unit, category: cat });
+                }
+            });
+
+            const newMeal = {
+                id: Date.now().toString(),
+                title,
+                category,
+                selected: true,
+                ingredients
+            };
+
+            recipes.push(newMeal);
+            saveToFirebase();
+            alert(`"${title}" added to your live Firebase database!`);
+            document.getElementById('addMealForm').reset();
+            switchTab('planTab');
+        }
+    </script>
+</body>
+</html>
